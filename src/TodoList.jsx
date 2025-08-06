@@ -1,16 +1,16 @@
+import TodoListItem from "./TodoListItem";
+
 function TodoList() {
     const todos = [
         { id: 1, title: "review resources" },
         { id: 2, title: "take notes" },
-        { id: 3, title: "code out app" },
+        { id: 3, title: "code out app" }
     ];
-    return (
-        <ul>
+    return (<ul>
             {todos.map(todo => (
                 <li key={todo.id}>{todo.title}</li>
             ))}
-        </ul>
-    );
+        </ul>) ;
 }
 
 export default TodoList; // Exporting TodoList as default
