@@ -1,9 +1,9 @@
 import TodoList from "./TodoList"
-function TodoListItem(){
+function TodoListItem({ todo }){
 
 return (
     <li>
-        {TodoList.title}
+        {todo.title}
     </li>
 )
 }
