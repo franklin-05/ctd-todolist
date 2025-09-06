@@ -1,108 +1,204 @@
 import './App.css';
-import React, { useEffect, useState } from 'react';
-import TodoForm from './features/TodoForm.jsx';
-import TodoList from './features/TodoList/TodoList.jsx';
-import TextInputWithLabel from './shared/TextInputWithLabel.jsx'; 
+import TodoList from './features/TodoList/TodoList';
+import TodoForm from './features/TodoForm';
+import { useState, useEffect } from 'react';
 
 function App() {
-    const [todoList, setTodoList] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
-    
+  const [todoList, setTodoList] = useState([]);
 
-    const url = `https://api.airtable.com/v0/${import.meta.env.VITE_BASE_ID}/${import.meta.env.VITE_TABLE_NAME}`;
-    const token = `Bearer ${import.meta.env.VITE_PAT}`;
-    
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-    console.log('API URL:', url);
-    console.log('Authorization Token:', token);
-   
-    const addTodo = (title) => {
-        const newTodo = { title, id: Date.now(), isCompleted: false };
-        setTodoList([...todoList, newTodo]);
-    };
+  const url = `https://api.airtable.com/v0/${import.meta.env.VITE_BASE_ID}/${import.meta.env.VITE_TABLE_NAME}`;
+  const token = `Bearer ${import.meta.env.VITE_PAT}`;
 
-    const completeTodo = (id) => {
-        const updatedTodos = todoList.map((todo) => {
-            if (todo.id === id) {
-                return { ...todo, isCompleted: true };
-            }
-            return todo;
+  useEffect(() => {
+    const fetchTodos = async () => {
+      setIsLoading(true);
+      const options = {
+        method: 'GET',
+        headers: { Authorization: token },
+      };
+      try {
+        const resp = await fetch(url, options);
+        if (!resp.ok) {
+          throw new Error(resp.statusText || `HTTP ${resp.status}`);
+        }
+        const { records } = await resp.json();
+        const fetched = records.map((record) => {
+          const todo = {
+            id: record.id,
+            ...record.fields,
+          };
+          if (!todo.isCompleted) {
+            todo.isCompleted = false;
+          }
+          return todo;
         });
-        setTodoList(updatedTodos);
+        setTodoList(fetched);
+      } catch (err) {
+        setErrorMessage(err.message || 'Failed to load todos');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTodos();
+  }, [url, token]);
+
+  //adding new todo to Airtable
+  async function addTodo(title) {
+    const newTodo = { title, isCompleted: false };
+
+    const payload = {
+      records: [
+        {
+          fields: {
+            title: newTodo.title,
+            isCompleted: newTodo.isCompleted,
+          },
+        },
+      ],
     };
 
-    const updateTodo = (editedTodo) => {
-        const updatedTodos = todoList.map((todo) => {
-            if (todo.id === editedTodo.id) {
-                return { ...editedTodo }; 
-            }
-            return todo; 
-        });
-        setTodoList(updatedTodos); 
+    const options = {
+      method: 'POST',
+      headers: {
+        Authorization: token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     };
 
-    useEffect(() => {
-        const fetchTodos = async () => {
-            setIsLoading(true);
-            const options = {
-                method: 'GET',
-                headers: {
-                    Authorization: token,
-                    'Content-Type': 'application/json',
-                }
-            };
+    try {
+      setIsSaving(true);
+      const resp = await fetch(url, options);
+      if (!resp.ok) {
+        throw new Error(resp.statusText || `HTTP ${resp.status}`);
+      }
+      const { records } = await resp.json();
+      const saved = {
+        id: records[0].id,
+        ...records[0].fields,
+      };
+      if (!saved.isCompleted) saved.isCompleted = false;
+      setTodoList([...todoList, saved]);
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err.message || 'Failed to save todo');
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
-            try {
-                const resp = await fetch(url, options); 
-                if (!resp.ok) {
-                    // This error will now show the correct HTTP status code if the request fails
-                    throw new Error(resp.statusText); 
-                }
-                const { records } = await resp.json(); 
-
-                const fetchedTodos = records.map((record) => {
-                    const todo = {
-                        id: record.id,
-                        ...record.fields, 
-                        isCompleted: record.fields.isCompleted || false,
-                    };
-
-                    if (!todo.isCompleted) {
-                        todo.isCompleted = false;
-                    }
-
-                    return todo; 
-                });
-
-                setTodoList(fetchedTodos); 
-            } catch (error) {
-                // This will now show "Not Found" or another correct status message
-                setErrorMessage('Error fetching todos: ' + error.message); 
-            } finally {
-                setIsLoading(false); 
-            }
-        };
-
-        fetchTodos(); 
-    }, [url, token]); 
-
-
-    return (
-        <div>
-            <h1>My Todos</h1>
-            {isLoading && <p>Loading...</p>}
-            {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
-
-            <TodoForm onAddTodo={addTodo} />
-            <TodoList 
-                todoList={todoList} 
-                onCompleteTodo={completeTodo} 
-                onUpdateTodo={updateTodo}
-                isLoading={isLoading}
-            />
-        </div>
+  //Complete Todo
+  async function completeTodo(id) {
+    const original = todoList.find((t) => t.id === id);
+    const optimistic = todoList.map((t) =>
+      t.id === id ? { ...t, isCompleted: true } : t
     );
+    setTodoList(optimistic);
+
+    const payload = {
+      records: [
+        {
+          id,
+          fields: { isCompleted: true },
+        },
+      ],
+    };
+
+    const options = {
+      method: 'PATCH',
+      headers: {
+        Authorization: token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    };
+
+    try {
+      const resp = await fetch(url, options);
+      if (!resp.ok) {
+        throw new Error(resp.statusText || `HTTP ${resp.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(
+        (err.message || 'Failed to complete todo') + '. Reverting todo...'
+      );
+      const reverted = todoList.map((t) => (t.id === id ? original : t));
+      setTodoList(reverted);
+    }
+  }
+
+  async function updateTodo(editedTodo) {
+    const original = todoList.find((t) => t.id === editedTodo.id);
+
+    const optimistic = todoList.map((t) =>
+      t.id === editedTodo.id ? { ...editedTodo } : t
+    );
+    setTodoList(optimistic);
+
+    const payload = {
+      records: [
+        {
+          id: editedTodo.id,
+          fields: {
+            title: editedTodo.title,
+            isCompleted: editedTodo.isCompleted,
+          },
+        },
+      ],
+    };
+
+    const options = {
+      method: 'PATCH',
+      headers: {
+        Authorization: token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    };
+
+    try {
+      const resp = await fetch(url, options);
+      if (!resp.ok) {
+        throw new Error(resp.statusText || `HTTP ${resp.status}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(
+        (err.message || 'Failed to update todo') + '. Reverting todo...'
+      );
+      const reverted = todoList.map((t) =>
+        t.id === editedTodo.id ? original : t
+      );
+      setTodoList(reverted);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <h1>My Todo App</h1>
+      <TodoForm onAddTodo={addTodo} isSaving={isSaving} />
+      <TodoList
+        todoList={todoList}
+        isLoading={isLoading}
+        onCompleteTodo={completeTodo}
+        onUpdateTodo={updateTodo}
+      />
+      {errorMessage && (
+        <div style={{ marginTop: 16 }}>
+          <hr />
+          <p role="alert">Error: {errorMessage}</p>
+          <button onClick={() => setErrorMessage('')}>Dismiss</button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default App;
