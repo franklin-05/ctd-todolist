@@ -1,0 +1,7 @@
+/* TodoListItem.module.css */
+
+.item {
+    padding-bottom: 12px; /* Add padding to the bottom */
+/* Ensure bullets are off in case parent fails */
+  list-style-type: none;
+}
