@@ -1,3 +1,4 @@
+import styles from './App.module.css';
 import './App.css';
 import TodoList from './features/TodoList/TodoList';
 import TodoForm from './features/TodoForm';
@@ -184,7 +185,7 @@ function App() {
   }
 
   return (
-    <div>
+    <div className={styles.App}>
       <h1>My Todo App</h1>
       <TodoForm onAddTodo={addTodo} isSaving={isSaving} />
       <TodoList
@@ -203,7 +204,7 @@ function App() {
         setQueryString={setQueryString}
       />
       {errorMessage && (
-        <div style={{ marginTop: 16 }}>
+        <div className={styles.ErrorContainer}>
           <hr />
           <p role="alert">Error: {errorMessage}</p>
           <button onClick={() => setErrorMessage('')}>Dismiss</button>
