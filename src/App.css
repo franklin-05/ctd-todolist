@@ -1,2 +1,61 @@
+/* src/App.css */
 
+/* --- Base & Background --- */
+body {
+    background-color: #f7f7f7; /* Light background for the page */
+    min-height: 100vh;
+    margin: 0;
+}
 
+#root {
+    /* Set minimum height to ensure body background covers the viewport */
+    min-height: 100vh;
+}
+
+/* --- Typography --- */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Georgia', serif; /* Serif font for headings */
+    color: #333;
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif; /* Sans-serif for body text */
+    line-height: 1.6;
+}
+
+/* --- Common Form Elements --- */
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+button:disabled {
+    background-color: #a0a0a0;
+    cursor: not-allowed;
+}
+
+input[type="text"], select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+    box-sizing: border-box; /* Include padding in element's total width and height */
+}
+
+/* Ensure the hr line is visible and clean */
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #ddd;
+    margin: 20px 0;
+    width: 100%;
+}
